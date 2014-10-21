@@ -70,6 +70,7 @@ struct arp_cache
 {
    uint32_t ip_addr;
    unsigned char mac_addr[6];
+   uint8_t time_sec;
    struct arp_cache* next;
 };
 /*********code added by Mukunda-end*******************/
@@ -89,6 +90,8 @@ void sr_handlepacket(struct sr_instance* , uint8_t * , unsigned int , char* );
 void form_arp_reply_packet(const struct sr_ethernet_hdr* , const struct sr_arphdr* , uint8_t*, char*,struct sr_instance* sr); 
 void update_arp_table(struct sr_instance*,uint8_t*);
 void catch_alarm(int sig); 
+void update_arp_cache_timer(struct sr_instance* );
+void check_arp_node(struct arp_cache**);
 /*********************************************/
 
 /* -- sr_if.c -- */

@@ -166,8 +166,13 @@ int main(int argc, char **argv)
     sr_init(&sr);
     
     /**********code added by mukunda****************/
+void catch_alarm(int sig)
+{
+	printf("Hello\n");
+        update_arp_cache_timer(&sr);
+        alarm(1);
+}
     signal(SIGALRM, catch_alarm);
-    alarm(1);
     /**********************************************/
     /* -- whizbang main loop ;-) */
     while( sr_read_from_server(&sr) == 1);
