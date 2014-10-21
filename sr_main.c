@@ -168,11 +168,12 @@ int main(int argc, char **argv)
     /**********code added by mukunda****************/
 void catch_alarm(int sig)
 {
-	printf("Hello\n");
         update_arp_cache_timer(&sr);
         alarm(1);
+	signal (sig, catch_alarm);
 }
     signal(SIGALRM, catch_alarm);
+    alarm(1);
     /**********************************************/
     /* -- whizbang main loop ;-) */
     while( sr_read_from_server(&sr) == 1);

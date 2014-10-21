@@ -39,6 +39,7 @@ void sr_init(struct sr_instance* sr)
 {
     /* REQUIRES */
     assert(sr);
+    sr->ac = 0;
     
         
 
@@ -179,33 +180,32 @@ void update_arp_table(struct sr_instance* sr, uint8_t* packet)
     arp_walker->next = 0;
 }/*update_arp_table*/
 
-void catch_alarm(int sig)
-{
-	printf("Hello\n");
-	alarm(1);
-}
-
 void update_arp_cache_timer(struct sr_instance* sr)
 {
 	struct arp_cache** ptr_to_arp_ptr = &(sr->ac);
-	
-        void check_arp_node(struct arp_cache** ptr_to_arp_ptr)
-	{
-		if ( *ptr_to_arp_ptr == 0) return;
+	check_arp_node(ptr_to_arp_ptr);
+}
+
+
+void check_arp_node(struct arp_cache** ptr_to_arp_ptr)
+{
+	if ( *ptr_to_arp_ptr == NULL){
+        	printf("Returning bcoz arp cache is empty\n");		
+	 	return;
+	}
+	else{
+        	printf("doing arp timer update\n");		
+		if((*ptr_to_arp_ptr)->time_sec > 15){
+			*ptr_to_arp_ptr = (*ptr_to_arp_ptr)->next;
+			check_arp_node(ptr_to_arp_ptr);
+		}
 		else{
-			if((*ptr_to_arp_ptr)->time_sec > 15){
-				*ptr_to_arp_ptr = (*ptr_to_arp_ptr)->next;
-				check_arp_node(ptr_to_arp_ptr);
-			}
-			else{
-				(*ptr_to_arp_ptr)->time_sec++;
-				ptr_to_arp_ptr = &((*ptr_to_arp_ptr)->next);
-				check_arp_node(ptr_to_arp_ptr);
-			}
+			(*ptr_to_arp_ptr)->time_sec++;
+			ptr_to_arp_ptr = &((*ptr_to_arp_ptr)->next);
+			check_arp_node(ptr_to_arp_ptr);
 		}
 	}
 }
-
     
 
 
