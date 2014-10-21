@@ -78,20 +78,15 @@ void sr_handlepacket(struct sr_instance* sr,
     struct sr_arphdr* arp_hdr;
     struct arp_cache* ac;
     uint8_t* reply_packet;
+    reply_packet = (uint8_t*) malloc(PACKET_SIZE);
+    assert(reply_packet);
     eth_hdr = (struct sr_ethernet_hdr*)packet;    
-    reply_packet = (uint8_t*) malloc(1000);
-/*    for(i=0; i<len;i++){
-      printf("%x\t",packet[i]);
-    }*/
     printf("\n*** -> Received packet of length %d \n",len);
-//  printf("\nPacket type is %x\n",eth_hdr->ether_type);
 
-    /***********check arp table and send arp request over all the interfaces if its not present in the table*************/
     if(eth_hdr->ether_type == 0x0608){ /*Arp packet received*/
     	arp_hdr = (struct sr_arphdr*)&eth_hdr->payload_ptr;
     	if(arp_hdr->ar_op == 0x100){	
-//           printf("\nARP Req Packet received\n");
-//           printf("test point ends\n");
+           printf("\nARP Req Packet received\n");
 	     form_arp_reply_packet(eth_hdr,arp_hdr,reply_packet,interface,sr);
 	     sr_send_packet(sr,reply_packet, len, interface);
     	}
@@ -105,6 +100,7 @@ void sr_handlepacket(struct sr_instance* sr,
     }
     else if(eth_hdr->ether_type == 0x0008){
 	printf("\nIPv4 Packet received\n");
+	process_ip_packet(&eth_hdr->payload_ptr);
     }
 }/* end sr_ForwardPacket */
 
@@ -132,42 +128,28 @@ void form_arp_reply_packet(const struct sr_ethernet_hdr* eth_hdr, const struct s
 	strncpy(reply_packet->ether_shost,iface->addr,ETHER_ADDR_LEN);
 	strncpy(rep_arp_hdr->ar_sha,iface->addr,ETHER_ADDR_LEN);
 	
-/*        printf("\nARP reply packet start\n");	
-
-	for(i=0; i<42; i++){
-		printf("%x\t", buf[i]);
-	}
-	printf("\nARP reply packet ends\n");*/
-	
 }/*form_arp_reply_packet*/
 
 void update_arp_table(struct sr_instance* sr, uint8_t* packet)
 {
-//  printf("test point 1\n");
     /* -- REQUIRES -- */
     assert(packet);
     assert(sr);
     struct arp_cache* arp_walker = 0;
     struct sr_ethernet_hdr* eth_hdr;
     struct sr_arphdr* arp_hdr;
-//  printf("test point 2\n");
     eth_hdr = (struct sr_ethernet_hdr*)packet;
     arp_hdr = (struct sr_arphdr*)(&(eth_hdr->payload_ptr));
-  /* -- empty list special case -- */
     if(sr->ac == 0)
     {
     	sr->ac = (struct arp_cache*)malloc(sizeof(struct arp_cache));
-//	printf("test point 3\n");
 	assert(sr->ac);
         sr->ac->next = 0;
-//      printf("test point 4\n");
        	strcpy(&(sr->ac->ip_addr),&(arp_hdr->ar_sip));
         strncpy(sr->ac->mac_addr,arp_hdr->ar_sha,ETHER_ADDR_LEN);
 	sr->ac->time_sec = 0;
-//	printf("%x\n",*sr->ac->mac_addr);
         return;
     }
-        /* -- find the end of the list -- */
     arp_walker = sr->ac;
     while(arp_walker->next)
     {arp_walker = arp_walker->next; }
@@ -184,13 +166,13 @@ void update_arp_cache_timer(struct sr_instance* sr)
 {
 	struct arp_cache** ptr_to_arp_ptr = &(sr->ac);
 	check_arp_node(ptr_to_arp_ptr);
-}
+}/* update_arp_cache_timer*/
 
 
 void check_arp_node(struct arp_cache** ptr_to_arp_ptr)
 {
 	if ( *ptr_to_arp_ptr == NULL){
-        	printf("Returning bcoz arp cache is empty\n");		
+    //    	printf("Returning bcoz arp cache is empty\n");		
 	 	return;
 	}
 	else{
@@ -205,8 +187,39 @@ void check_arp_node(struct arp_cache** ptr_to_arp_ptr)
 			check_arp_node(ptr_to_arp_ptr);
 		}
 	}
-}
-    
+}/*check_arp_node*/
+   
+void  process_ip_packet(struct ip* ip_hdr)
+{
+	unsigned int hdr_len;
+	hdr_len = ip_hdr->ip_hl;
+	if (find_checksum(ip_hdr, hdr_len) != 0){
+		printf("Checksum error in IP packet\n");
+		return;
+	}
+}/*process_ip_packet*/
+
+uint16_t find_checksum(uint16_t* ip_hdr, int hdr_len)
+{
+	int i=0;
+	hdr_len = hdr_len*2; /*No of 16 bit words*/
+	uint32_t sum = 0;
+	uint16_t s,c, checksum;
+	uint16_t dummy = 0;
+        for(i=0; i<hdr_len;i++){
+ 	        dummy = ((ip_hdr[i] & 0xff) << 8) | ((ip_hdr[i] >> 8) & 0xff);	
+		sum = sum + dummy;
+	}
+
+	c = (sum & 0xffff0000)>>16;	
+	s = sum;
+        checksum = ~(s+c);
+	return checksum;
+}/*find_checksum*/
+
+
+	
+
 
 
 /*--------------------------------------------------------------------- 

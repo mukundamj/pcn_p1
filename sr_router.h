@@ -31,6 +31,7 @@
 
 #define INIT_TTL 255
 #define PACKET_DUMP_SIZE 1024
+#define PACKET_SIZE 1024 
 
 /* forward declare */
 struct sr_if;
@@ -92,6 +93,8 @@ void update_arp_table(struct sr_instance*,uint8_t*);
 void catch_alarm(int sig); 
 void update_arp_cache_timer(struct sr_instance* );
 void check_arp_node(struct arp_cache**);
+uint16_t find_checksum(uint16_t*, int);
+void process_ip_packet(struct ip*);
 /*********************************************/
 
 /* -- sr_if.c -- */
