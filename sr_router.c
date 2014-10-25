@@ -120,7 +120,8 @@ void sr_handlepacket(struct sr_instance* sr,
 			if(ip_hdr->ip_p == 1){
 				printf("ICMP echo req message received for router\n");
 				icmp_hdr = (struct sr_icmp_hdr*)&ip_hdr->payload;
-				if(find_icmp_checksum(icmp_hdr,(ntohs(ip_hdr->ip_len)-20)!=0)){
+				printf("ip packet length is %x\n", (ntohs(ip_hdr->ip_len)-20));
+				if(find_icmp_checksum(icmp_hdr,(ntohs(ip_hdr->ip_len)-20))!=0){
 					 printf("Checksum error in icmp header");
 					 return;
 				}
@@ -131,11 +132,14 @@ void sr_handlepacket(struct sr_instance* sr,
 				memcpy(icmp_reply_packet->ether_dhost,eth_hdr->ether_shost,6);
 				icmp_reply_packet->ether_type = eth_hdr->ether_type;
 				ip_hdr = (struct ip*)&icmp_reply_packet->payload;
+				printf("ip packet length is in reply packet is%x\n", (ntohs(ip_hdr->ip_len)-20));
+				ip_hdr->ip_dst.s_addr = ip_hdr->ip_src.s_addr;
+				ip_hdr->ip_src.s_addr = sr_get_interface(sr,interface)->ip;
 				icmp_hdr = (struct sr_icmp_hdr*)&ip_hdr->payload;
 				icmp_hdr->type = 0;
 				icmp_hdr->code = 0;
 				icmp_hdr->checksum = 0;
-				icmp_hdr->checksum = find_icmp_checksum(icmp_hdr,(ntohs(ip_hdr->ip_len)-20));		
+				icmp_hdr->checksum = ntohs(find_icmp_checksum(icmp_hdr,(ntohs(ip_hdr->ip_len)-20)));		
 	     			sr_send_packet(sr,icmp_reply_packet,(14+(ntohs(ip_hdr->ip_len))), interface);
 				free(icmp_reply_packet);
 				return;
@@ -522,22 +526,22 @@ void print_arp_cache(struct sr_instance* sr)
 uint16_t find_icmp_checksum(uint16_t* icmp_hdr,int len)
 {
 	int i=0;
-//	printf("header length is %d\n", ih->ip_hl);
 	uint32_t sum = 0;
 	uint16_t s=0,c=0, checksum=0;
 	uint16_t dummy = 0;
-//	printf("the header values used for checksum\n");
+	printf("the icmp header and datagram length is %d\n",len); 
+	printf("the header values used for checksum\n");
         for(i=0; i<(len/2);i++){
-//		printf("header is %x\n", ip_hdr[i]);
+		printf("header is %x\n", icmp_hdr[i]);
  	        dummy = ((icmp_hdr[i] & 0xff) << 8) | ((icmp_hdr[i] >> 8) & 0xff);	
 		sum = sum + dummy;
-//		printf("partial sum is %x\n", sum);
+		printf("partial sum is %x\n", sum);
 	}
-//        printf("sum is %x\n",sum);
+        printf("sum is %x\n",sum);
 	c = (sum & 0xffff0000)>>16;	
 	s = sum;
         checksum = ~(s+c);
-//	printf("checksum is %d\n",checksum);
+	printf("checksum is %x\n",checksum);
 	return checksum;
 }
 
