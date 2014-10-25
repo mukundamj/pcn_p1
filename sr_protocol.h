@@ -29,7 +29,8 @@
  * sr_protocol.h
  *
  */
-
+#include "sr_if.h"
+#include "sr_router.h"
 #ifndef SR_PROTOCOL_H
 #define SR_PROTOCOL_H
 
@@ -39,6 +40,9 @@
 
 #include <sys/types.h>
 #include <arpa/inet.h>
+
+
+
  
 #ifndef IP_MAXPACKET
 #define IP_MAXPACKET 65535
@@ -101,6 +105,7 @@ struct ip
     uint8_t ip_p;			/* protocol */
     uint16_t ip_sum;			/* checksum */
     struct in_addr ip_src, ip_dst;	/* source and dest address */
+    uint8_t payload;
   } __attribute__ ((packed)) ;
 
 /* 
@@ -115,9 +120,16 @@ struct sr_ethernet_hdr
     uint8_t  ether_dhost[ETHER_ADDR_LEN];    /* destination ethernet address */
     uint8_t  ether_shost[ETHER_ADDR_LEN];    /* source ethernet address */
     uint16_t ether_type;                     /* packet type ID */
-    uint8_t  payload_ptr;
+    uint8_t  payload;
 } __attribute__ ((packed)) ;
 
+struct sr_icmp_hdr
+{
+    uint8_t type;
+    uint8_t code;
+    uint16_t checksum;
+    uint8_t payload;
+};
 #ifndef ARPHDR_ETHER
 #define ARPHDR_ETHER    1
 #endif
@@ -148,6 +160,8 @@ struct sr_arphdr
     uint32_t        ar_sip;             /* sender IP address            */
     unsigned char   ar_tha[ETHER_ADDR_LEN]; /* target hardware address      */
     uint32_t        ar_tip;             /* target IP address            */
+    char 	    dst_iface[sr_IFACE_NAMELEN];/*this info is not for sending*/ 
+    uint8_t	    arp_req_count;     /*this info is not for sending*/
 } __attribute__ ((packed)) ;
 
 

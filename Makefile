@@ -9,7 +9,7 @@
 
 all : sr
 
-CC = gcc
+CC = gcc -w
 
 OSTYPE = $(shell uname)
 

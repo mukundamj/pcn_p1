@@ -549,25 +549,27 @@ sr_ether_addrs_match_interface( struct sr_instance* sr, /* borrowed */
     ether_hdr = (struct sr_ethernet_hdr*)buf;
     iface = sr_get_interface(sr, name);
 
-    if ( iface == 0 )
+    /*if ( iface == 0 )
     {
         fprintf( stderr, "** Error, interface %s, does not exist\n", name);
         return 0;
     }
- /*   printf("Ethernet packet received is\n");
+    printf("Ethernet packet received is\n");
     for (i=0; i<6 ;i++){ 
-    printf(" %d\t",ether_hdr->ether_dhost[i]);
+    printf(" %x\t",ether_hdr->ether_dhost[i]);
     }
     for (i=0; i<6 ;i++){ 
-    printf(" %d\t",ether_hdr->ether_shost[i]);
+    printf(" %x\t",ether_hdr->ether_shost[i]);
     } 
-    printf(" %d\t",ether_hdr->ether_type);*/
+    printf(" %x\t",ether_hdr->ether_type);
+    printf("iface name is %c%c%c%c\n",iface->name[0],iface->name[1],iface->name[2],iface->name[3]);
+    printf("ether_shost is %x %x %x %x %x %x\n",iface->addr[0],iface->addr[1],iface->addr[2],iface->addr[3],iface->addr[4],iface->addr[5]);*/
     if ( memcmp( ether_hdr->ether_shost, iface->addr, ETHER_ADDR_LEN) != 0 )
     {
         fprintf( stderr, "** Error, source address does not match interface\n");
         return 0;
     }
-
+    
     /* TODO */
     /* Check destination, hardware address.  If it is private (i.e. destined
      * to a virtual interface) ensure it is going to the correct topology

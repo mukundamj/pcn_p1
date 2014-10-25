@@ -31,13 +31,18 @@
 
 #define INIT_TTL 255
 #define PACKET_DUMP_SIZE 1024
+/****************code added by mukunda************/
 #define PACKET_SIZE 1024 
+#define IP_QUEUE_SIZE 100
+#define ARP_QUEUE_SIZE 100
+/************************************************/
 
 /* forward declare */
 struct sr_if;
 struct sr_rt;
 /*************code added by mukunda*********/
 struct arp_cache;
+struct ip_queue;
 /************************/
 /* ----------------------------------------------------------------------------
  * struct sr_instance
@@ -62,6 +67,8 @@ struct sr_instance
     struct sr_rt* routing_table; /* routing table */
 /*********code added by Mukunda-begin*******************/
     struct arp_cache* ac;
+    struct queue* iq;
+    struct queue* arp_req_queue;
 /*********code added by Mukunda-end*******************/
     FILE* logfile;
 };
@@ -74,6 +81,16 @@ struct arp_cache
    uint8_t time_sec;
    struct arp_cache* next;
 };
+
+struct queue
+{
+   int capacity;
+   int size;
+   int front;
+   int rear;
+   uint32_t* elements;
+};
+
 /*********code added by Mukunda-end*******************/
     
 /* -- sr_main.c -- */
@@ -93,8 +110,16 @@ void update_arp_table(struct sr_instance*,uint8_t*);
 void catch_alarm(int sig); 
 void update_arp_cache_timer(struct sr_instance* );
 void check_arp_node(struct arp_cache**);
-uint16_t find_checksum(uint16_t*, int);
-void process_ip_packet(struct ip*);
+uint16_t find_checksum(uint16_t *);
+void process_ip_packet(struct sr_instance*);
+struct queue* create_queue(int);
+uint8_t* get_q_front(struct queue* );
+void enqueue(struct queue*, uint8_t*);
+void check_arp_req_queue(struct sr_instance*);
+struct sr_rt* get_rt_entry_from_rtable(long, struct sr_rt*);
+char* get_dst_mac_from_arp_cache(long, struct arp_cache*);
+uint8_t* form_arp_req_pkt(uint32_t,char*, struct sr_instance*);
+uint16_t find_icmp_checksum(uint16_t*, int);
 /*********************************************/
 
 /* -- sr_if.c -- */
