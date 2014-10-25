@@ -33,7 +33,7 @@
 #define PACKET_DUMP_SIZE 1024
 /****************code added by mukunda************/
 #define PACKET_SIZE 1024 
-#define IP_QUEUE_SIZE 100
+#define IP_QUEUE_SIZE 10
 #define ARP_QUEUE_SIZE 100
 /************************************************/
 
@@ -114,7 +114,7 @@ uint16_t find_checksum(uint16_t *);
 void process_ip_packet(struct sr_instance*);
 struct queue* create_queue(int);
 uint8_t* get_q_front(struct queue* );
-void enqueue(struct queue*, uint8_t*);
+int enqueue(struct queue*, uint8_t*);
 void check_arp_req_queue(struct sr_instance*);
 struct sr_rt* get_rt_entry_from_rtable(long, struct sr_rt*);
 char* get_dst_mac_from_arp_cache(long, struct arp_cache*);

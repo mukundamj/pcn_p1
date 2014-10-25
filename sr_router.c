@@ -1,9 +1,7 @@
-
-/**********************************************************************
- * file:  sr_router.c 
- * date:  Mon Feb 18 12:50:42 PST 2002  
- * Contact: casado@stanford.edu 
- *
+/***************************************************************** 
+ * file: sr_router.c
+ * date: Mon Feb 18 12:50:42 PST 2002
+ * contact: casado@stanford.edu
  * Description:
  * 
  * This file contains all the functions that interact directly
@@ -149,7 +147,7 @@ void sr_handlepacket(struct sr_instance* sr,
 			}				
 		}
 	enqueue(sr->iq,eth_hdr);
-	printf("ip packet is enqued\n");
+//	printf("ip packet is enqued\n");
 	process_ip_packet(sr);
     }
     else{
@@ -226,12 +224,12 @@ void update_arp_cache_timer(struct sr_instance* sr)
 void check_arp_node(struct arp_cache** ptr_to_arp_ptr)
 {
 	if ( *ptr_to_arp_ptr == NULL){
-        	printf("Returning bcoz arp cache is empty\n");		
+  //    	printf("Returning bcoz arp cache is empty\n");		
 	 	return;
 	}
 	else{
-        	printf("doing arp timer update\n");		
-		if((*ptr_to_arp_ptr)->time_sec > 15){
+//        	printf("doing arp timer update\n");		
+		if((*ptr_to_arp_ptr)->time_sec > 14){
 			*ptr_to_arp_ptr = (*ptr_to_arp_ptr)->next;
 			check_arp_node(ptr_to_arp_ptr);
 		}
@@ -255,7 +253,7 @@ void check_arp_req_queue(struct sr_instance* sr)
 	arp_req_queue = sr->arp_req_queue;
 	assert(arp_req_queue);
 	if(arp_req_queue->size == 0){
-		printf("arp req queue is empty \n");
+//		printf("arp req queue is empty \n");
 		return;
 	}
 	arp_req_packet = (struct sr_ethernet_hdr*)get_q_front(sr->arp_req_queue);
@@ -265,7 +263,7 @@ void check_arp_req_queue(struct sr_instance* sr)
 		check_arp_req_queue(sr);
 	}
 	if(ac_walker == 0){
-		printf("arp cache is empty\n");
+//		printf("arp cache is empty\n");
 	}
  	
         while (ac_walker){
@@ -296,11 +294,8 @@ void  process_ip_packet(struct sr_instance* sr)
 	long dst_ip;
 	unsigned short arp_pkt_len = 42;
 	uint8_t* dummy;
-	if(sr->iq->size == 0){
-		printf("ip q is empty\n");
-		return;
-	}
-	
+        
+	while( sr->iq->size){	
 	eth_hdr = (struct sr_ethernet_hdr*)get_q_front(sr->iq);
 	assert(eth_hdr);
 	ip_hdr = &eth_hdr->payload;
@@ -315,7 +310,7 @@ void  process_ip_packet(struct sr_instance* sr)
 		         
 		//	printf("packet is free of checksum error\n");
 			rt_entry = get_rt_entry_from_rtable(ip_hdr->ip_dst.s_addr,sr->routing_table);
-			printf("rt entry dst ip is %x\n",rt_entry->gw.s_addr);
+//			printf("rt entry dst ip is %x\n",rt_entry->gw.s_addr);
 		//	printf("the dest iface is %C%C%C%C\n",rt_entry->interface[0],rt_entry->interface[1],rt_entry->interface[2],rt_entry->interface[3]);
 						
 			if((rt_entry->gw.s_addr) == 0x00000000){
@@ -326,7 +321,7 @@ void  process_ip_packet(struct sr_instance* sr)
 			}
 
 			print_arp_cache(sr);
-			printf("the dest ip is %x\n",dst_ip);
+//			printf("the dest ip is %x\n",dst_ip);
 			dst_mac = get_dst_mac_from_arp_cache(dst_ip,sr->ac); 
 			/****************If mac addr is not in arp cache send arp request***********/
 			if(dst_mac == NULL){
@@ -334,8 +329,11 @@ void  process_ip_packet(struct sr_instance* sr)
 				arp_req_pkt = form_arp_req_pkt(dst_ip,rt_entry->interface,sr);
 	     			sr_send_packet(sr,arp_req_pkt, arp_pkt_len, rt_entry->interface);
 				printf("arp request message sent\n");
-		//		enqueue(sr->arp_req_queue,arp_req_pkt);
-	//			enqueue(sr->iq,eth_hdr);
+				enqueue(sr->arp_req_queue,arp_req_pkt);
+			/*	if(enqueue(sr->iq,eth_hdr)==1){
+					printf("ip q is full");
+					return;
+				}*/
 			}
 			/***********If mac addr is in arp cache, do ip forwarding***********/
 			else{
@@ -357,12 +355,12 @@ void  process_ip_packet(struct sr_instance* sr)
 				checksum = find_checksum(fwd_ip_hdr);
 				fwd_ip_hdr->ip_sum = ntohs(checksum);
 				sr_send_packet(sr,ip_fwd_pkt,(14+ntohs(fwd_ip_hdr->ip_len)), rt_entry->interface);
-				printf("ip packet forwarded\n");
+//				printf("ip packet forwarded\n");
 			        free(ip_fwd_pkt);
 			}	
 		}
 	
-	process_ip_packet(sr);
+	}	
 }/*process_ip_packet*/
 
 uint16_t find_checksum(uint16_t* ip_hdr)
@@ -426,11 +424,11 @@ that element*/
 	return q->elements[front_of_q];	
 }
 
-void enqueue(struct queue* q,uint8_t* element)
+int enqueue(struct queue* q,uint8_t* element)
 {
 	if(q->size == q->capacity){
 //		printf("queue is full\n");
-		return;
+		return 1;
 	}
 	else{
 		q->size++;
@@ -439,7 +437,7 @@ void enqueue(struct queue* q,uint8_t* element)
 			q->rear = 0;
 		}
 		(q->elements)[q->rear] = element;		
-		return;
+		return 0;
 	}
 } 
 
@@ -466,7 +464,7 @@ char* get_dst_mac_from_arp_cache(long dst_ip,struct arp_cache* ac)
 	struct arp_cache* ac_walker = ac;
 	unsigned char* dst_mac;
         while(ac_walker){
-		printf("checking arp cache, xor value is %x\n", ((dst_ip)^(ac_walker->ip_addr)));
+//		printf("checking arp cache, xor value is %x\n", ((dst_ip)^(ac_walker->ip_addr)));
 		if(((dst_ip)^(ac_walker->ip_addr))==0){ 
 			dst_mac = ac_walker->mac_addr;
 			return dst_mac;
@@ -529,19 +527,19 @@ uint16_t find_icmp_checksum(uint16_t* icmp_hdr,int len)
 	uint32_t sum = 0;
 	uint16_t s=0,c=0, checksum=0;
 	uint16_t dummy = 0;
-	printf("the icmp header and datagram length is %d\n",len); 
-	printf("the header values used for checksum\n");
+//	printf("the icmp header and datagram length is %d\n",len); 
+//	printf("the header values used for checksum\n");
         for(i=0; i<(len/2);i++){
-		printf("header is %x\n", icmp_hdr[i]);
+//		printf("header is %x\n", icmp_hdr[i]);
  	        dummy = ((icmp_hdr[i] & 0xff) << 8) | ((icmp_hdr[i] >> 8) & 0xff);	
 		sum = sum + dummy;
-		printf("partial sum is %x\n", sum);
+//		printf("partial sum is %x\n", sum);
 	}
-        printf("sum is %x\n",sum);
+  //    printf("sum is %x\n",sum);
 	c = (sum & 0xffff0000)>>16;	
 	s = sum;
         checksum = ~(s+c);
-	printf("checksum is %x\n",checksum);
+//	printf("checksum is %x\n",checksum);
 	return checksum;
 }
 
