@@ -170,7 +170,7 @@ void catch_alarm(int sig)
 {
 	check_arp_req_queue(&sr);
         update_arp_cache_timer(&sr);
-        print_arp_cache(&sr);
+//      print_arp_cache(&sr);
         alarm(1);
 	signal (sig, catch_alarm);
 }

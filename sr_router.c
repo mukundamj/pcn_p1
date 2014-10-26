@@ -86,7 +86,7 @@ void sr_handlepacket(struct sr_instance* sr,
     uint8_t* reply_packet;
     struct sr_ethernet_hdr* icmp_reply_packet;
         eth_hdr = (struct sr_ethernet_hdr*)packet;    
-    printf("\n*** -> Received packet of length %d from mac addr %x\n",eth_hdr->ether_shost[0]);
+//    printf("\n*** -> Received packet of length %d from mac addr %x\n",eth_hdr->ether_shost[0]);
 
     if(eth_hdr->ether_type == 0x0608){ 
 
@@ -112,7 +112,7 @@ void sr_handlepacket(struct sr_instance* sr,
     }
 
     else if(eth_hdr->ether_type == 0x0008){
-	printf("\nIPv4 Packet received\n");
+//	printf("\nIPv4 Packet received\n");
 	ip_hdr = (struct ip*)&eth_hdr->payload;
 		if(ip_hdr->ip_dst.s_addr == (sr_get_interface(sr,interface))->ip){
 			if(ip_hdr->ip_p == 1){
@@ -178,7 +178,7 @@ void form_arp_reply_packet(const struct sr_ethernet_hdr* eth_hdr, const struct s
 	assert(iface);
 	strncpy(reply_packet->ether_shost,iface->addr,ETHER_ADDR_LEN);
 	strncpy(rep_arp_hdr->ar_sha,iface->addr,ETHER_ADDR_LEN);
-        printf("formed arp reply packet\n");	
+//        printf("formed arp reply packet\n");	
 }/*form_arp_reply_packet*/
 
 void update_arp_table(struct sr_instance* sr, uint8_t* packet)
@@ -253,34 +253,35 @@ void check_arp_req_queue(struct sr_instance* sr)
 	ac_walker = sr->ac;
 	arp_req_queue = sr->arp_req_queue;
 	assert(arp_req_queue);
-	if(arp_req_queue->size == 0){
-//		printf("arp req queue is empty \n");
-		return;
-	}
+	
+	while(arp_req_queue->size){
+	arp_found_flag == 0;
 	arp_req_packet = (struct sr_ethernet_hdr*)get_q_front(sr->arp_req_queue);
+
   	arp_hdr = &arp_req_packet->payload;
-	if(arp_hdr->arp_req_count > 4 ){ /**here 4 is used bcoz the arp req packet is already sent once after forming arp_req_pkt*/
-		printf("Destination host %d is not reachable\n", arp_hdr->ar_tip);
-		check_arp_req_queue(sr);
+	if(arp_hdr->arp_req_count >= 4 ){ /**here 4 is used bcoz the arp req packet is already sent once after forming arp_req_pkt*/
+		printf("Destination host %x is not reachable\n", arp_hdr->ar_tip);
+		continue;
 	}
 	if(ac_walker == 0){
-//		printf("arp cache is empty\n");
+		printf("arp cache is empty\n");
 	}
  	
         while (ac_walker){
 		if(ac_walker->ip_addr ^ arp_hdr->ar_tip == 0){
 			printf("The arp req packet for dst ip %d has got a reply\n",arp_hdr->ar_tip); 
 			arp_found_flag = 1;
-			break;
+			continue;
 		}	
 		ac_walker = ac_walker->next;
 	}
+	
 	if( arp_found_flag == 0){
 	     	sr_send_packet(sr,arp_req_packet, arp_pkt_len, arp_hdr->dst_iface);
-		arp_hdr->arp_req_count++;
+		printf("%d ARP request sent\n", ++arp_hdr->arp_req_count);
 		enqueue(arp_req_queue,arp_req_packet);
 	}
-	check_arp_req_queue(sr);	
+	}	
 }
 void  process_ip_packet(struct sr_instance* sr)
 {
@@ -328,8 +329,9 @@ void  process_ip_packet(struct sr_instance* sr)
 //				printf("arp cache doesn't contain the dst IP\n");
 				arp_req_pkt = form_arp_req_pkt(dst_ip,rt_entry->interface,sr);
 	     			sr_send_packet(sr,arp_req_pkt, arp_pkt_len, rt_entry->interface);
-				printf("arp request message sent\n");
+				printf("0th ARP request sent\n");
 				enqueue(sr->arp_req_queue,arp_req_pkt);
+//				printf("arp req q size is %d\n",sr->arp_req_queue->size);
 				if(enqueue(sr->iq,eth_hdr)==1){
 					printf("ip q is full");
 				}
@@ -514,7 +516,7 @@ void print_arp_cache(struct sr_instance* sr)
 {
    struct arp_cache* ac_walker;
    ac_walker = sr->ac;
-   printf("ip_addr     mac_addr         time_sec\n");
+///   printf("ip_addr     mac_addr         time_sec\n");
    while(ac_walker){
 	printf("%x     %x %x %x %x %x %x   %d\n",ac_walker->ip_addr,ac_walker->mac_addr[0],ac_walker->mac_addr[1],ac_walker->mac_addr[2],ac_walker->mac_addr[3],ac_walker->mac_addr[4],ac_walker->mac_addr[5],ac_walker->time_sec);
 	ac_walker = ac_walker->next;
