@@ -191,7 +191,8 @@ void update_arp_table(struct sr_instance* sr, uint8_t* packet)
     struct sr_arphdr* arp_hdr;
     eth_hdr = (struct sr_ethernet_hdr*)packet;
     arp_hdr = (struct sr_arphdr*)(&(eth_hdr->payload));
-    printf("arp_sha is %x %x %x %x %x %x\n",arp_hdr->ar_sha[0],arp_hdr->ar_sha[1],arp_hdr->ar_sha[2],arp_hdr->ar_sha[3],arp_hdr->ar_sha[4],arp_hdr->ar_sha[5]);
+    if(get_dst_mac_from_arp_cache(arp_hdr->ar_sip,sr->ac)!= 0) return;
+//    printf("arp_sha is %x %x %x %x %x %x\n",arp_hdr->ar_sha[0],arp_hdr->ar_sha[1],arp_hdr->ar_sha[2],arp_hdr->ar_sha[3],arp_hdr->ar_sha[4],arp_hdr->ar_sha[5]);
     if(sr->ac == 0)
     {
     	sr->ac = (struct arp_cache*)malloc(sizeof(struct arp_cache));
@@ -320,7 +321,6 @@ void  process_ip_packet(struct sr_instance* sr)
 				dst_ip = rt_entry->gw.s_addr;
 			}
 
-			print_arp_cache(sr);
 //			printf("the dest ip is %x\n",dst_ip);
 			dst_mac = get_dst_mac_from_arp_cache(dst_ip,sr->ac); 
 			/****************If mac addr is not in arp cache send arp request***********/
@@ -330,10 +330,10 @@ void  process_ip_packet(struct sr_instance* sr)
 	     			sr_send_packet(sr,arp_req_pkt, arp_pkt_len, rt_entry->interface);
 				printf("arp request message sent\n");
 				enqueue(sr->arp_req_queue,arp_req_pkt);
-			/*	if(enqueue(sr->iq,eth_hdr)==1){
+				if(enqueue(sr->iq,eth_hdr)==1){
 					printf("ip q is full");
-					return;
-				}*/
+				}
+				return;
 			}
 			/***********If mac addr is in arp cache, do ip forwarding***********/
 			else{
